@@ -10,6 +10,7 @@ const (
 	Fail = -1
 	Free = 0
 	Finished = 2
+	ErrorBound = 10
 )
 
 type JobType string

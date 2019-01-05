@@ -2,7 +2,7 @@ package mapreduce
 
 import "testing"
 import "fmt"
-// import "time"
+import "time"
 import "container/list"
 import "strings"
 import "os"
@@ -148,44 +148,44 @@ func TestBasic(t *testing.T) {
 	fmt.Printf("  ... Basic Passed\n")
 }
 
-// func TestOneFailure(t *testing.T) {
-// 	fmt.Printf("Test: One Failure mapreduce ...\n")
-// 	mr := setup()
-// 	// Start 2 workers that fail after 10 jobs
-// 	go RunWorker(mr.MasterAddress, port("worker"+strconv.Itoa(0)),
-// 		MapFunc, ReduceFunc, 10)
-// 	go RunWorker(mr.MasterAddress, port("worker"+strconv.Itoa(1)),
-// 		MapFunc, ReduceFunc, -1)
-// 	// Wait until MR is done
-// 	<-mr.DoneChannel
-// 	check(t, mr.file)
-// 	checkWorker(t, mr.stats)
-// 	cleanup(mr)
-// 	fmt.Printf("  ... One Failure Passed\n")
-// }
+func TestOneFailure(t *testing.T) {
+	fmt.Printf("Test: One Failure mapreduce ...\n")
+	mr := setup()
+	// Start 2 workers that fail after 10 jobs
+	go RunWorker(mr.MasterAddress, port("worker"+strconv.Itoa(0)),
+		MapFunc, ReduceFunc, 10)
+	go RunWorker(mr.MasterAddress, port("worker"+strconv.Itoa(1)),
+		MapFunc, ReduceFunc, -1)
+	// Wait until MR is done
+	<-mr.DoneChannel
+	check(t, mr.file)
+	checkWorker(t, mr.stats)
+	cleanup(mr)
+	fmt.Printf("  ... One Failure Passed\n")
+}
 
-// func TestManyFailures(t *testing.T) {
-// 	fmt.Printf("Test: One ManyFailures mapreduce ...\n")
-// 	mr := setup()
-// 	i := 0
-// 	done := false
-// 	for !done {
-// 		select {
-// 		case done = <-mr.DoneChannel:
-// 			check(t, mr.file)
-// 			cleanup(mr)
-// 			break
-// 		default:
-// 			// Start 2 workers each sec. The workers fail after 10 jobs
-// 			w := port("worker" + strconv.Itoa(i))
-// 			go RunWorker(mr.MasterAddress, w, MapFunc, ReduceFunc, 10)
-// 			i++
-// 			w = port("worker" + strconv.Itoa(i))
-// 			go RunWorker(mr.MasterAddress, w, MapFunc, ReduceFunc, 10)
-// 			i++
-// 			time.Sleep(1 * time.Second)
-// 		}
-// 	}
+func TestManyFailures(t *testing.T) {
+	fmt.Printf("Test: One ManyFailures mapreduce ...\n")
+	mr := setup()
+	i := 0
+	done := false
+	for !done {
+		select {
+		case done = <-mr.DoneChannel:
+			check(t, mr.file)
+			cleanup(mr)
+			break
+		default:
+			// Start 2 workers each sec. The workers fail after 10 jobs
+			w := port("worker" + strconv.Itoa(i))
+			go RunWorker(mr.MasterAddress, w, MapFunc, ReduceFunc, 10)
+			i++
+			w = port("worker" + strconv.Itoa(i))
+			go RunWorker(mr.MasterAddress, w, MapFunc, ReduceFunc, 10)
+			i++
+			time.Sleep(1 * time.Second)
+		}
+	}
 
-// 	fmt.Printf("  ... Many Failures Passed\n")
-// }
+	fmt.Printf("  ... Many Failures Passed\n")
+}

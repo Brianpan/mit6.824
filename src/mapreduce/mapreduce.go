@@ -68,6 +68,7 @@ type MapReduce struct {
 	mu sync.Mutex
 	// available queue for workers
 	AvailableWorkers *list.List
+	ErrorJobs        *list.List
 	MapStatus        map[int]int
 	ReduceStatus     map[int]int
 	MapCounter       int
@@ -87,12 +88,13 @@ func InitMapReduce(nmap int, nreduce int,
 
 	// initialize any additional state here
 	mr.AvailableWorkers = list.New()
+	mr.ErrorJobs = list.New()
 	mr.MapCounter = 0
 	mr.ReduceCounter = 0
 	mr.Workers = make(map[string]WorkerInfo)
 	mr.MapStatus = make(map[int]int)
 	mr.ReduceStatus = make(map[int]int)
-	
+
 	return mr
 }
 

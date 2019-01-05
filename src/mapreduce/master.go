@@ -9,6 +9,7 @@ type WorkerInfo struct {
 	// You can add definitions here.
 	status int
 	jtype  string
+	errCount int
 }
 
 // Clean up all workers by sending a Shutdown RPC to each one of them Collect
@@ -50,6 +51,7 @@ func (mr *MapReduce) ReceiveWorker() {
 		workerInfo.address = newWorkerAddress
 		workerInfo.status = 0
 		workerInfo.jtype = ""
+		workerInfo.errCount = 0
 		mr.mu.Lock()
 		mr.Workers[newWorkerAddress] = workerInfo
 		// available worker
@@ -71,6 +73,21 @@ func (mr *MapReduce) ParallelMap() {
 			go mr.RunMap(jid, worker)
 			jid += 1
 		}
+
+		// any error jobs to handle
+		for mr.AvailableWorkers.Len() > 0 && mr.ErrorJobs.Len() > 0 {
+			mr.mu.Lock()
+			ele := mr.ErrorJobs.Front()
+			mr.ErrorJobs.Remove(ele)
+			mr.mu.Unlock()
+			ejid := ele.Value.(int)
+			mr.mu.Lock()
+			ele =  mr.AvailableWorkers.Front()
+			mr.AvailableWorkers.Remove(ele)
+			worker := ele.Value.(*WorkerInfo)
+			mr.mu.Unlock()
+			go mr.RunMap(ejid, worker)
+		}
 		time.Sleep(10 * time.Millisecond)
 	}
 }
@@ -88,6 +105,15 @@ func (mr *MapReduce) RunMap(jid int, worker *WorkerInfo) {
 	mr.MapStatus[jid] = Running
 	mr.mu.Unlock()
 	for ok == false || reply.OK == false {
+		// worker dead
+		if worker.errCount >= ErrorBound {
+			mr.mu.Lock()
+			worker.status = -1
+			mr.ErrorJobs.PushBack(jid)
+			mr.mu.Unlock()
+			return
+		}
+		worker.errCount += 1
 		ok = call(worker.address, "Worker.DoJob", args, &reply)
 	}
 	
@@ -110,6 +136,20 @@ func (mr *MapReduce) ParallelReduce() {
 			go mr.RunReduce(jid, worker)
 			jid += 1
 		}
+		// any error jobs to handle
+		for mr.AvailableWorkers.Len() > 0 && mr.ErrorJobs.Len() > 0 {
+			mr.mu.Lock()
+			ele := mr.ErrorJobs.Front()
+			mr.ErrorJobs.Remove(ele)
+			mr.mu.Unlock()
+			ejid := ele.Value.(int)
+			mr.mu.Lock()
+			ele =  mr.AvailableWorkers.Front()
+			mr.AvailableWorkers.Remove(ele)
+			worker := ele.Value.(*WorkerInfo)
+			mr.mu.Unlock()
+			go mr.RunReduce(ejid, worker)
+		}
 		time.Sleep(10 * time.Millisecond)
 	}
 }
@@ -128,6 +168,15 @@ func (mr *MapReduce) RunReduce(jid int, worker *WorkerInfo) {
 	mr.ReduceStatus[jid] = Running
 	mr.mu.Unlock()
 	for ok == false || reply.OK == false {
+		// worker dead
+		if worker.errCount >= ErrorBound {
+			mr.mu.Lock()
+			mr.ErrorJobs.PushBack(jid)
+			worker.status = -1
+			mr.mu.Unlock()
+			return
+		}
+		worker.errCount += 1
 		ok = call(worker.address, "Worker.DoJob", args, &reply)
 	}
 	mr.mu.Lock()
