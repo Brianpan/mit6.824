@@ -89,7 +89,10 @@ func InitMapReduce(nmap int, nreduce int,
 	mr.AvailableWorkers = list.New()
 	mr.MapCounter = 0
 	mr.ReduceCounter = 0
-
+	mr.Workers = make(map[string]WorkerInfo)
+	mr.MapStatus = make(map[int]int)
+	mr.ReduceStatus = make(map[int]int)
+	
 	return mr
 }
 
@@ -137,7 +140,7 @@ func (mr *MapReduce) StartRegistrationServer() {
 					conn.Close()
 				}()
 			} else {
-				DPrintf("RegistrationServer: accept error", err)
+				DPrintf("RegistrationServer: accept error")
 				break
 			}
 		}

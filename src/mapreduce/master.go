@@ -62,7 +62,7 @@ func (mr *MapReduce) ReceiveWorker() {
 func (mr *MapReduce) ParallelMap() {
 	jid := 0
 	for mr.MapCounter < mr.nMap {
-		for mr.AvailableWorkers.Len() > 0 && jid < mr.nMap {
+		for mr.AvailableWorkers.Len() > 0 && jid < mr.nMap && mr.MapCounter < mr.nMap {
 			mr.mu.Lock()
 			ele :=  mr.AvailableWorkers.Front()
 			mr.AvailableWorkers.Remove(ele)
@@ -71,18 +71,18 @@ func (mr *MapReduce) ParallelMap() {
 			go mr.RunMap(jid, worker)
 			jid += 1
 		}
+		time.Sleep(10 * time.Millisecond)
 	}
 }
 // Run each map
 func (mr *MapReduce) RunMap(jid int, worker *WorkerInfo) {
-	args = &DoJobArgs{}
+	args := &DoJobArgs{}
 	args.File = mr.file
 	args.Operation = Map
 	args.JobNumber = jid
 	args.NumOtherPhase = mr.nReduce
 
 	var reply DoJobReply
-
 	ok := call(worker.address, "Worker.DoJob", args, &reply)
 	mr.mu.Lock()
 	mr.MapStatus[jid] = Running
@@ -90,6 +90,7 @@ func (mr *MapReduce) RunMap(jid int, worker *WorkerInfo) {
 	for ok == false || reply.OK == false {
 		ok = call(worker.address, "Worker.DoJob", args, &reply)
 	}
+	
 	mr.mu.Lock()
 	mr.AvailableWorkers.PushBack(worker)
 	mr.MapCounter += 1
@@ -100,7 +101,7 @@ func (mr *MapReduce) RunMap(jid int, worker *WorkerInfo) {
 func (mr *MapReduce) ParallelReduce() {
 	jid := 0
 	for mr.ReduceCounter < mr.nReduce {
-		for mr.AvailableWorkers.Len() > 0 && jid < mr.nReduce {
+		for mr.AvailableWorkers.Len() > 0 && jid < mr.nReduce && mr.ReduceCounter < mr.nReduce {
 			mr.mu.Lock()
 			ele :=  mr.AvailableWorkers.Front()
 			mr.AvailableWorkers.Remove(ele)
@@ -109,15 +110,16 @@ func (mr *MapReduce) ParallelReduce() {
 			go mr.RunReduce(jid, worker)
 			jid += 1
 		}
+		time.Sleep(10 * time.Millisecond)
 	}
 }
 
-func (mr *MapReduce) ParallelReduce(jid int, worker *WorkerInfo) {
-	args = &DoJobArgs{}
+func (mr *MapReduce) RunReduce(jid int, worker *WorkerInfo) {
+	args := &DoJobArgs{}
 	args.File = mr.file
 	args.Operation = Reduce
 	args.JobNumber = jid
-	args.NumOtherPhase = mr.nReduce
+	args.NumOtherPhase = mr.nMap
 
 	var reply DoJobReply
 
