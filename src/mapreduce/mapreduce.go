@@ -62,7 +62,7 @@ type MapReduce struct {
 	stats           *list.List // return from RunMaster
 
 	// Map of registered workers that you need to keep up to date
-	Workers map[string]*WorkerInfo
+	Workers map[string]WorkerInfo
 
 	// add any additional state here
 	mu sync.Mutex
@@ -70,8 +70,8 @@ type MapReduce struct {
 	AvailableWorkers *list.List
 	MapStatus        map[int]int
 	ReduceStatus     map[int]int
-	mapCounter       int
-	reduceCounter    int
+	MapCounter       int
+	ReduceCounter    int
 }
 
 func InitMapReduce(nmap int, nreduce int,
@@ -87,8 +87,8 @@ func InitMapReduce(nmap int, nreduce int,
 
 	// initialize any additional state here
 	mr.AvailableWorkers = list.New()
-	mr.mapCounter = 0
-	mr.reduceCounter = 0
+	mr.MapCounter = 0
+	mr.ReduceCounter = 0
 
 	return mr
 }

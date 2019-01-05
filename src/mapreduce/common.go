@@ -6,6 +6,10 @@ import "net/rpc"
 const (
 	Map    = "Map"
 	Reduce = "Reduce"
+	Running = 1
+	Fail = -1
+	Free = 0
+	Finished = 2
 )
 
 type JobType string
